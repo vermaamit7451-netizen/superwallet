@@ -379,7 +379,7 @@ app.get('/wallet/user', async (req, res, next) => {
     const username = cleanUsername(req.query.username);
     const user = await User.findOne({ username, role: 'user' });
     if (!user) return res.status(404).json({ error: 'unknown user' });
-    res.json({ username, balance: Number(user.balance).toFixed(2), currency: 'INR' });
+    res.json({ username, balance: Number(user.balance).toFixed(2), Username: username, Balance: Number(user.balance), currency: 'INR' });
   } catch (error) { next(error); }
 });
 app.post('/wallet/balance', async (req, res, next) => {
@@ -411,7 +411,7 @@ app.post('/wallet/balance', async (req, res, next) => {
       if (error?.code === 11000) { const row = await Transaction.findOne({ providerTransactionId }); return res.json({ status: 'ok', balance: Number(row?.balanceAfter || user.balance).toFixed(2), duplicate: true }); }
       throw error;
     }
-    res.json({ status: 'ok', balance: Number(updated.balance).toFixed(2) });
+    res.json({ status: 'ok', balance: Number(updated.balance).toFixed(2), Balance: Number(updated.balance) });
   } catch (error) { next(error); }
 });
 
