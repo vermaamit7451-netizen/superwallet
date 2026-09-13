@@ -1,0 +1,612 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SuperWallet</title>
+  <style>
+    :root{
+      --nav:#102326;
+      --nav2:#173237;
+      --accent:#0b8f63;
+      --accent2:#15b77b;
+      --soft:#f3f3f3;
+      --line:#e1e4e5;
+      --text:#182124;
+      --muted:#7b8588;
+      --danger:#d94d4d;
+      --shadow:0 3px 12px rgba(0,0,0,.10);
+      --radius:10px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;min-height:100%;font-family:Arial,Helvetica,sans-serif;background:#e9e9e9;color:var(--text)}
+    button,input,select,textarea{font:inherit}
+    button{cursor:pointer}
+    .app{min-height:100vh}
+    .topbar{
+      height:68px;background:var(--nav);color:#fff;display:flex;align-items:center;
+      gap:18px;padding:0 18px;position:sticky;top:0;z-index:30;box-shadow:0 2px 8px rgba(0,0,0,.22)
+    }
+    .brand{min-width:215px;display:flex;align-items:center;gap:10px;font-weight:800;font-size:23px}
+    .brand-mark{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#17b77e,#06533d);box-shadow:inset 0 0 0 3px rgba(255,255,255,.15)}
+    .brand-mark:after{content:"S";font-size:18px}
+    .search{flex:1;max-width:430px;margin-left:auto;position:relative}
+    .search input{width:100%;height:42px;border:0;border-radius:24px;padding:0 18px 0 42px;outline:none;background:#fff;color:#333}
+    .search span{position:absolute;left:16px;top:11px;color:#9aa1a3}
+    .clock{font-size:12px;line-height:1.25;color:#e4ecec;white-space:nowrap}
+    .clock b{font-size:15px;color:#fff}
+    .top-actions{display:flex;gap:8px}
+    .btn{border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.08);color:#fff;border-radius:22px;padding:10px 15px;font-weight:700}
+    .btn:hover{background:rgba(255,255,255,.16)}
+    .btn.primary{background:#0d6e58;border-color:#49b89b}
+    .btn.light{background:#fff;color:#173033;border-color:#ddd}
+    .categorybar{
+      height:45px;background:#fff;border-bottom:1px solid #ddd;display:flex;align-items:center;
+      gap:6px;padding:0 8px;overflow-x:auto;white-space:nowrap
+    }
+    .categorybar button{
+      border:1px solid #e2e2e2;background:linear-gradient(#fff,#f0f0f0);color:#5b4b59;
+      border-radius:18px;padding:7px 15px;font-size:12px;font-weight:700
+    }
+    .categorybar button.active,.categorybar button:hover{color:#0c8b61;border-color:#bde2d4}
+    .layout{max-width:1360px;margin:10px auto;display:grid;grid-template-columns:235px 1fr;gap:10px;padding:0 8px}
+    .sidebar{
+      background:#fff;border-radius:10px;overflow:hidden;box-shadow:var(--shadow);height:calc(100vh - 135px);
+      position:sticky;top:125px
+    }
+    .side-scroll{height:100%;overflow:auto}
+    .side-title{padding:14px 18px;background:#f7f7f7;font-weight:800;color:#233235;border-bottom:1px solid var(--line)}
+    .side-item{
+      height:51px;border-bottom:1px solid #ededed;display:flex;align-items:center;gap:13px;
+      padding:0 18px;background:#fff;font-size:14px;font-weight:600
+    }
+    .side-item:hover,.side-item.active{background:#f0faf6;color:#087f5a}
+    .side-icon{width:23px;text-align:center;font-size:18px}
+    .main{min-width:0}
+    .brandstrip{
+      background:#fff;border-radius:10px;padding:8px;display:grid;grid-template-columns:repeat(4,1fr);gap:7px;
+      box-shadow:var(--shadow);overflow:hidden
+    }
+    .brand-card{
+      height:38px;border-radius:6px;color:#fff;display:flex;align-items:center;padding:0 12px;
+      font-weight:800;font-size:13px;letter-spacing:.2px;position:relative;overflow:hidden
+    }
+    .brand-card:after{content:"";position:absolute;right:-20px;top:-30px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,.12)}
+    .g1{background:linear-gradient(90deg,#275b12,#4d921e)} .g2{background:linear-gradient(90deg,#20283b,#3b73a7)}
+    .g3{background:linear-gradient(90deg,#126e6a,#54b6aa)} .g4{background:linear-gradient(90deg,#283b80,#7359c7)}
+    .g5{background:linear-gradient(90deg,#4d7b18,#1b4610)} .g6{background:linear-gradient(90deg,#5b258c,#9b52c9)}
+    .g7{background:linear-gradient(90deg,#ae6411,#e5a632)} .g8{background:linear-gradient(90deg,#9b1c1c,#d34a3a)}
+    .section{
+      background:#fff;margin-top:10px;border-radius:10px;box-shadow:var(--shadow);overflow:hidden
+    }
+    .section-head{height:43px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid #e5e5e5}
+    .section-head strong{font-size:15px}
+    .section-head .tabs{display:flex;gap:22px;margin-left:4px;overflow:auto}
+    .tab{border:0;background:none;padding:13px 0 10px;color:#666;border-bottom:2px solid transparent;white-space:nowrap}
+    .tab.active{color:#087f5a;border-bottom-color:#087f5a;font-weight:800}
+    .cards{display:grid;grid-template-columns:repeat(8,minmax(105px,1fr));gap:7px;padding:10px}
+    .game{
+      min-height:150px;border-radius:8px;overflow:hidden;position:relative;color:#fff;
+      display:flex;align-items:flex-end;padding:9px;font-weight:900;text-transform:uppercase;
+      background:linear-gradient(145deg,#1a274d,#e0a11e 55%,#6d2119);box-shadow:inset 0 -60px 45px rgba(0,0,0,.42)
+    }
+    .game:nth-child(2){background:linear-gradient(145deg,#491b14,#edac24 50%,#4b130e)}
+    .game:nth-child(3){background:linear-gradient(145deg,#152b55,#f3bd20 52%,#6a231a)}
+    .game:nth-child(4){background:radial-gradient(circle at 50% 30%,#edc83a,#51319a 38%,#10163b)}
+    .game:nth-child(5){background:linear-gradient(145deg,#0b1730,#e6bd30 55%,#541619)}
+    .game:nth-child(6){background:linear-gradient(145deg,#16366e,#d9b62d 48%,#12294e)}
+    .game:nth-child(7){background:linear-gradient(145deg,#8b2030,#f1d4a3 55%,#221118)}
+    .game:nth-child(8){background:linear-gradient(145deg,#4e1d12,#d26b23 45%,#17151a)}
+    .game small{display:block;font-size:11px;opacity:.9}.game span{font-size:17px;text-shadow:1px 2px 3px #000}
+    .hero-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0}
+    .hero{
+      min-height:185px;display:flex;align-items:center;justify-content:space-between;padding:18px 24px;
+      color:#fff;position:relative;overflow:hidden
+    }
+    .hero:before,.hero:after{content:"";position:absolute;border-radius:50%;filter:blur(1px)}
+    .hero:before{width:180px;height:180px;right:-35px;top:-55px;background:rgba(255,255,255,.12)}
+    .hero:after{width:120px;height:120px;left:45%;bottom:-70px;background:rgba(255,255,255,.08)}
+    .hero h2{margin:0 0 6px;font-size:28px}.hero p{margin:0 0 14px;max-width:240px;opacity:.9;font-size:13px}
+    .hero .hero-btn{border:0;border-radius:18px;background:#fff;color:#172b2d;padding:8px 14px;font-weight:800}
+    .h1{background:linear-gradient(120deg,#351064,#7a1eaf 55%,#3d146c)}
+    .h2{background:linear-gradient(120deg,#5c3c0c,#b77915 52%,#34200a)}
+    .h3{background:linear-gradient(120deg,#071f23,#096d5b 55%,#02191a)}
+    .wallet-panel{display:grid;grid-template-columns:1.2fr .8fr;gap:10px;padding:10px}
+    .balance{background:linear-gradient(135deg,#0d3f37,#0b8f63);border-radius:10px;color:#fff;padding:20px;min-height:145px}
+    .balance .label{font-size:12px;opacity:.8}.balance .amount{font-size:34px;font-weight:900;margin:6px 0 14px}
+    .wallet-actions{display:flex;gap:8px;flex-wrap:wrap}.wallet-actions button{border:0;border-radius:18px;padding:9px 14px;font-weight:800}
+    .wallet-actions .deposit{color:#086d4e}.wallet-actions .withdraw{background:#183337;color:#fff}
+    .notice{background:#f7faf9;border:1px solid #d9eee7;border-radius:10px;padding:15px}
+    .notice h3{margin:0 0 8px;font-size:15px}.notice p{margin:0;color:#6a7477;font-size:12px;line-height:1.5}
+
+    .game-lobby{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:10px}
+    .provider-game{background:#101e23;border-radius:10px;overflow:hidden;color:#fff;box-shadow:var(--shadow);min-height:210px;display:flex;flex-direction:column}
+    .provider-game img{width:100%;height:125px;object-fit:cover;background:#20343a}
+    .provider-game .pg-body{padding:10px;display:flex;flex-direction:column;gap:6px;flex:1}
+    .provider-game strong{font-size:13px;line-height:1.25}.provider-game small{color:#aebdc0;font-size:10px}
+    .play-demo{margin-top:auto;border:0;border-radius:7px;padding:8px;background:#0b8f63;color:#fff;font-weight:900;font-size:11px}
+    .lobby-tools{display:flex;gap:7px;padding:10px;flex-wrap:wrap}.lobby-tools input{flex:1;min-width:180px;border:1px solid #d9dfe0;border-radius:8px;padding:9px}.lobby-tools button{border:1px solid #cfd8d9;background:#fff;border-radius:8px;padding:9px 12px;font-weight:800}.lobby-note{padding:0 10px 10px;color:#7b8588;font-size:11px}
+    .game-modal-card{width:min(1100px,100%);height:min(780px,92vh);background:#071316;border-radius:14px;overflow:hidden;display:flex;flex-direction:column}.game-modal-card .modal-head{flex:none}.game-frame{width:100%;height:100%;border:0;background:#000}
+    .dashboard{display:none}.dashboard.show{display:block}
+    .dash-top{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:10px}
+    .stat{background:#fff;border-radius:10px;padding:16px;box-shadow:var(--shadow)}
+    .stat span{font-size:12px;color:#7b8588}.stat strong{display:block;font-size:25px;margin-top:5px}
+    .table-wrap{overflow:auto;padding:10px}.table{width:100%;border-collapse:collapse;min-width:650px}
+    .table th,.table td{text-align:left;padding:10px;border-bottom:1px solid #eee;font-size:12px}
+    .table th{background:#f7f8f8;color:#687276}
+    .pill{padding:4px 8px;border-radius:12px;font-weight:800;font-size:10px;display:inline-block}
+    .pill.pending{background:#fff4d7;color:#996c00}.pill.approved{background:#ddf6eb;color:#08714e}.pill.rejected{background:#fde5e5;color:#aa3333}
+    .modal{position:fixed;inset:0;background:rgba(0,0,0,.58);display:none;align-items:center;justify-content:center;padding:15px;z-index:100}
+    .modal.show{display:flex}.modal-card{width:min(460px,100%);background:#fff;border-radius:14px;box-shadow:0 20px 70px rgba(0,0,0,.3);overflow:hidden}
+    .modal-head{background:var(--nav);color:#fff;padding:17px 20px;display:flex;justify-content:space-between;align-items:center}
+    .modal-head button{background:none;border:0;color:#fff;font-size:22px}.modal-body{padding:20px}
+    .form-row{margin-bottom:13px}.form-row label{display:block;font-size:12px;font-weight:800;margin-bottom:6px;color:#4e5b5e}
+    .form-row input,.form-row select,.form-row textarea{width:100%;border:1px solid #d9dfe0;border-radius:8px;padding:11px;outline:none}
+    .form-row textarea{min-height:80px;resize:vertical}.submit{width:100%;border:0;background:#0b8f63;color:#fff;padding:12px;border-radius:9px;font-weight:900}
+    .auth-card{width:min(440px,100%)}.auth-tabs{display:flex}.auth-tabs button{flex:1;border:0;background:#f3f5f5;padding:12px;font-weight:800}.auth-tabs button.active{background:#fff;color:#07865e;border-bottom:2px solid #07865e}
+    .auth-form{padding:20px}.auth-form h2{margin:0 0 4px}.auth-form p{color:#788184;font-size:12px;margin:0 0 17px}
+    .toast{position:fixed;right:18px;bottom:18px;background:#12282b;color:#fff;padding:12px 16px;border-radius:9px;box-shadow:var(--shadow);display:none;z-index:200;font-size:13px}
+    .toast.show{display:block}
+    .admin-tools{display:flex;gap:7px;flex-wrap:wrap;padding:0 10px 10px}
+    .admin-tools button{border:1px solid #d9dfdf;background:#fff;border-radius:8px;padding:8px 11px;font-size:12px;font-weight:800}
+    .empty{padding:25px;text-align:center;color:#8a9295;font-size:13px}
+    footer{max-width:1360px;margin:15px auto;padding:0 10px 25px;color:#7b8385;font-size:11px;text-align:center}
+    @media(max-width:1000px){
+      .game-lobby{grid-template-columns:repeat(3,minmax(0,1fr))}
+      .layout{grid-template-columns:190px 1fr}.cards{grid-template-columns:repeat(4,1fr)}.brandstrip{grid-template-columns:repeat(2,1fr)}
+      .search{max-width:280px}.clock{display:none}
+    }
+    @media(max-width:720px){
+      .game-lobby{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .topbar{height:auto;min-height:62px;flex-wrap:wrap;padding:10px}.brand{min-width:auto}.search{order:3;max-width:none;flex-basis:100%}
+      .layout{grid-template-columns:1fr}.sidebar{display:none}.hero-grid{grid-template-columns:1fr}.hero{min-height:155px}
+      .cards{grid-template-columns:repeat(2,1fr)}.wallet-panel,.dash-top{grid-template-columns:1fr}.top-actions .signup{display:none}
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark"></div><span>SuperWallet</span></div>
+    <div class="search"><span>⌕</span><input id="eventSearch" placeholder="Search Events (At least 3 letters)..."></div>
+    <div class="clock"><span id="dateText"></span><br><b id="timeText"></b></div>
+    <div class="top-actions" id="topActions">
+      <button class="btn" onclick="openAuth('login')">⇥ &nbsp;Log In</button>
+      
+    </div>
+  </header>
+
+  <nav class="categorybar">
+    <button class="active">HOME</button><button>SPORTS</button><button>GAMES</button><button>WALLET</button>
+    <button>TRANSACTIONS</button><button>SUPPORT</button><button>ABOUT</button>
+  </nav>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="side-scroll">
+        <div class="side-title">Categories</div>
+        <div class="side-item active"><span class="side-icon">◉</span>Dashboard</div>
+        <div class="side-item"><span class="side-icon">🏏</span>Sports</div>
+        <div class="side-item"><span class="side-icon">⚽</span>Football</div>
+        <div class="side-item"><span class="side-icon">🎾</span>Tennis</div>
+        <div class="side-item"><span class="side-icon">🏇</span>Horse Racing</div>
+        <div class="side-item"><span class="side-icon">🏆</span>Sportsbook</div>
+        <div class="side-item"><span class="side-icon">🎮</span>Games</div>
+        <div class="side-item"><span class="side-icon">💳</span>Wallet</div>
+        <div class="side-item"><span class="side-icon">💸</span>Deposit</div>
+        <div class="side-item"><span class="side-icon">↗</span>Withdrawal</div>
+        <div class="side-item"><span class="side-icon">📊</span>Reports</div>
+        <div class="side-item"><span class="side-icon">⚙</span>Account</div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <section class="brandstrip">
+        <div class="brand-card g1">SUPER WALLET</div><div class="brand-card g2">LIVE EVENTS</div>
+        <div class="brand-card g3">FAST WALLET</div><div class="brand-card g4">SECURE ACCOUNT</div>
+        <div class="brand-card g5">SPORTS HUB</div><div class="brand-card g6">ENTERTAINMENT</div>
+        <div class="brand-card g7">MEMBER REWARDS</div><div class="brand-card g8">24×7 SUPPORT</div>
+      </section>
+
+      <section class="section">
+        <div class="section-head">
+          <strong>Popular</strong>
+          <div class="tabs"><button class="tab active">Featured</button><button class="tab">Sports</button><button class="tab">Games</button><button class="tab">Wallet</button><button class="tab">Services</button></div>
+        </div>
+        <div class="cards">
+          <div class="game"><div><small>Featured</small><span>Golden<br>Kick</span></div></div>
+          <div class="game"><div><small>Featured</small><span>Wicket<br>Blast</span></div></div>
+          <div class="game"><div><small>Featured</small><span>Football<br>X</span></div></div>
+          <div class="game"><div><small>Featured</small><span>Twist<br>X</span></div></div>
+          <div class="game"><div><small>Featured</small><span>Instant<br>Cards</span></div></div>
+          <div class="game"><div><small>Featured</small><span>Hand<br>Cards</span></div></div>
+          <div class="game"><div><small>Featured</small><span>Black<br>Jack</span></div></div>
+          <div class="game"><div><small>Featured</small><span>Deal<br>No Deal</span></div></div>
+        </div>
+      </section>
+
+      <section class="section" id="gameLobbySection">
+        <div class="section-head"><strong>Game Lobby</strong><span style="margin-left:auto;color:#7b8588;font-size:11px">Provider demo games</span></div>
+        <div class="lobby-tools">
+          <input id="gameSearch" placeholder="Search provider games...">
+          <button onclick="loadProviderGames()">Load Games</button>
+        </div>
+        <div class="lobby-note" id="gameLobbyNote">Login first, then load the provider's Standard/Sandbox catalogue. Demo mode does not use your SuperWallet balance.</div>
+        <div class="game-lobby" id="providerGames"><div class="empty" style="grid-column:1/-1">No provider games loaded yet.</div></div>
+      </section>
+
+      <section class="section">
+        <div class="section-head"><strong>SuperWallet Services</strong></div>
+        <div class="hero-grid">
+          <div class="hero h1"><div><h2>MY WALLET</h2><p>Check your balance and manage your wallet requests from one place.</p><button class="hero-btn" onclick="openWallet()">Open Wallet</button></div></div>
+          <div class="hero h2"><div><h2>QUICK DEPOSIT</h2><p>Submit a wallet credit request and track its status in transaction history.</p><button class="hero-btn" onclick="openRequest('deposit')">Deposit</button></div></div>
+          <div class="hero h3"><div><h2>WITHDRAW</h2><p>Request a withdrawal from your available wallet balance.</p><button class="hero-btn" onclick="openRequest('withdrawal')">Withdraw</button></div></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="section-head"><strong>Wallet Overview</strong></div>
+        <div class="wallet-panel">
+          <div class="balance">
+            <div class="label">CURRENT WALLET BALANCE</div>
+            <div class="amount" id="homeBalance">₹ 0.00</div>
+            <div class="wallet-actions">
+              <button class="deposit" onclick="openRequest('deposit')">＋ Deposit Request</button>
+              <button class="withdraw" onclick="openRequest('withdrawal')">↗ Withdrawal</button>
+            </div>
+          </div>
+          <div class="notice">
+            <h3>Secure wallet management</h3>
+            <p>Your requests are recorded in transaction history. Approved credits/debits are reflected in your wallet balance. This interface is for wallet and account management.</p>
+            <div style="margin-top:12px"><button class="btn light" onclick="openWallet()">View Transactions</button></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="dashboard" id="dashboard">
+        <div class="section-head" style="margin-top:10px;background:#fff;border-radius:10px 10px 0 0"><strong>My Account</strong></div>
+        <div class="dash-top">
+          <div class="stat"><span>Wallet Balance</span><strong id="dashBalance">₹ 0.00</strong></div>
+          <div class="stat"><span>Account</span><strong id="dashUser">—</strong></div>
+          <div class="stat"><span>Role</span><strong id="dashRole">User</strong></div>
+        </div>
+        <div class="section">
+          <div class="section-head"><strong>Recent Transactions</strong></div>
+          <div class="table-wrap"><table class="table"><thead><tr><th>Date</th><th>Type</th><th>Direction</th><th>Amount</th><th>Status</th><th>Balance</th></tr></thead><tbody id="transactionBody"></tbody></table></div>
+        </div>
+        <div id="adminArea" style="display:none">
+          <div class="section">
+            <div class="section-head"><strong>Master Admin Panel</strong></div>
+            <div class="dash-top">
+              <div class="stat"><span>Total Users</span><strong id="adminUsers">0</strong></div>
+              <div class="stat"><span>Pending Requests</span><strong id="adminPending">0</strong></div>
+              <div class="stat"><span>Total Wallet Balance</span><strong id="adminBalance">₹ 0.00</strong></div>
+            </div>
+            <div class="admin-tools">
+              <button onclick="loadAdmin()">↻ Refresh</button>
+              <button onclick="openAdjust()">＋ Manual Adjustment</button>
+            </div>
+            <div class="table-wrap"><table class="table"><thead><tr><th>User</th><th>Type</th><th>Direction</th><th>Amount</th><th>Status</th><th>Action</th></tr></thead><tbody id="adminBody"></tbody></table></div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+  <footer>© 2026 SuperWallet · Wallet management dashboard</footer>
+</div>
+
+<div class="modal" id="authModal">
+  <div class="modal-card auth-card">
+    <div class="modal-head"><strong>SuperWallet</strong><button onclick="closeModal('authModal')">×</button></div>
+    <div class="auth-tabs"><button id="loginTab" class="active">Log In</button></div>
+    <form class="auth-form" id="authForm">
+      <h2 id="authTitle">Welcome back</h2><p id="authSub">Log in to access your SuperWallet account.</p>
+      <div class="form-row" id="usernameRow"><label>USERNAME</label><input id="authUsername" minlength="3" maxlength="32" required autocomplete="username"></div>
+      
+      <div class="form-row"><label>PASSWORD</label><input id="authPassword" type="password" minlength="6" required></div>
+      <button class="submit" id="authSubmit">Log In</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="requestModal">
+  <div class="modal-card">
+    <div class="modal-head"><strong id="requestTitle">Wallet Request</strong><button onclick="closeModal('requestModal')">×</button></div>
+    <form class="modal-body" id="requestForm">
+      <div class="form-row"><label>AMOUNT</label><input id="reqAmount" type="number" min="1" step="0.01" required placeholder="Enter amount"></div>
+      <div class="form-row"><label id="referenceLabel">UTR / PAYMENT REFERENCE</label><input id="reqReference" maxlength="100" placeholder="Enter UTR number"></div>
+      <div class="form-row" id="proofRow"><label>PAYMENT PROOF <span style="color:#d94d4d">*</span></label><input id="reqProof" type="file" accept="image/jpeg,image/png,image/webp,application/pdf" required><small style="display:block;color:#7b8588;margin-top:5px">JPG, PNG, WEBP or PDF • Max 5 MB</small></div>
+      <div class="form-row" id="payoutRow" style="display:none"><label>PAYOUT DETAILS</label><textarea id="reqPayout" maxlength="500" placeholder="Enter payout details"></textarea></div>
+      <div class="form-row"><label>NOTE</label><textarea id="reqNote" maxlength="500" placeholder="Optional note"></textarea></div>
+      <button class="submit">Submit Request</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="adjustModal">
+  <div class="modal-card">
+    <div class="modal-head"><strong>Manual Wallet Adjustment</strong><button onclick="closeModal('adjustModal')">×</button></div>
+    <form class="modal-body" id="adjustForm">
+      <div class="form-row"><label>USER ID</label><input id="adjUser" required placeholder="MongoDB user ID"></div>
+      <div class="form-row"><label>ACTION</label><select id="adjDirection"><option value="credit">Credit</option><option value="debit">Debit</option></select></div>
+      <div class="form-row"><label>AMOUNT</label><input id="adjAmount" type="number" min="1" step="0.01" required></div>
+      <div class="form-row"><label>NOTE</label><textarea id="adjNote" required placeholder="Reason for adjustment"></textarea></div>
+      <button class="submit">Apply Adjustment</button>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="gameModal">
+  <div class="game-modal-card">
+    <div class="modal-head"><strong id="gameModalTitle">Game</strong><button onclick="closeModal('gameModal')">×</button></div>
+    <iframe class="game-frame" id="gameFrame" title="Provider demo game" allow="autoplay; fullscreen"></iframe>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const API = '';
+  let token = localStorage.getItem('superwallet_token') || '';
+  let currentUser = null;
+  let requestType = 'deposit';
+
+  const $ = id => document.getElementById(id);
+
+  function toast(message){
+    $('toast').textContent = message;
+    $('toast').classList.add('show');
+    clearTimeout(window.toastTimer);
+    window.toastTimer = setTimeout(()=>$('toast').classList.remove('show'),3200);
+  }
+
+  function closeModal(id){ $(id).classList.remove('show'); }
+  function openModal(id){ $(id).classList.add('show'); }
+
+  function money(v){
+    const n = Number(v || 0);
+    return '₹ ' + n.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+  }
+
+  async function api(path, options={}){
+    const headers = {...(options.headers||{})};
+    if(!(options.body instanceof FormData)) headers['Content-Type']='application/json';
+    if(token) headers.Authorization = 'Bearer ' + token;
+    const res = await fetch(API + path, {...options, headers});
+    let data = {};
+    try{ data = await res.json(); }catch{}
+    if(!res.ok){
+      // A 401 from the BigBang proxy can mean the provider API key is invalid.
+      // Do not destroy the customer's SuperWallet session in that case.
+      if(res.status === 401 && !path.startsWith('/api/games/')){
+        logout(false);
+      }
+      throw new Error(data.message || data.error || 'Request failed');
+    }
+    return data;
+  }
+
+  function openAuth(){
+    $('loginTab').classList.add('active');
+    $('authTitle').textContent = 'Welcome back';
+    $('authSub').textContent = 'Use the username and password created by Master or Admin.';
+    $('authSubmit').textContent = 'Log In';
+    $('authForm').dataset.mode = 'login';
+    openModal('authModal');
+    setTimeout(()=>$('authUsername').focus(),50);
+  }
+
+  $('authForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    const body = {username:$('authUsername').value.trim(),password:$('authPassword').value};
+    try{
+      $('authSubmit').disabled = true;
+      const data = await api('/api/auth/login',{method:'POST',body:JSON.stringify(body)});
+      token = data.token || data.sessionToken || data.accessToken || '';
+      if(token) localStorage.setItem('superwallet_token',token);
+      closeModal('authModal');
+      $('authForm').reset();
+      if(data.user && data.user.role === 'superadmin'){
+        window.location.href = '/supermaster';
+        return;
+      }
+      if(data.user && data.user.role === 'admin'){
+        window.location.href = '/master';
+        return;
+      }
+      await loadAccount();
+      toast('Logged in successfully.');
+    }catch(err){ toast(err.message); }
+    finally{ $('authSubmit').disabled = false; }
+  });
+
+  async function loadProviderGames(){
+    if(!token){ openAuth('login'); return; }
+    const box=$('providerGames');
+    box.innerHTML='<div class="empty" style="grid-column:1/-1">Loading provider catalogue...</div>';
+    try{
+      const q=encodeURIComponent($('gameSearch').value.trim());
+      const data=await api('/api/games/catalog'+(q?'?search='+q:''));
+      const games=Array.isArray(data.games)?data.games:[];
+      $('gameLobbyNote').textContent = games.length ? `Loaded ${games.length} provider demo games. Demo play is separate from your SuperWallet balance.` : 'No games returned for this search.';
+      box.innerHTML=games.length?games.map(g=>{
+        const name=escapeHtml(g.name||'Game'); const provider=escapeHtml(g.provider||g.category_title||'Provider');
+        const thumb=escapeHtml(g.thumbnail||'');
+        return `<div class="provider-game">${thumb?`<img src="${thumb}" alt="${name}" loading="lazy">`:'<div style="height:125px;background:linear-gradient(135deg,#173b3b,#0b8f63);display:grid;place-items:center;font-size:38px">🎮</div>'}<div class="pg-body"><strong>${name}</strong><small>${provider}</small><button class="play-demo" onclick="playProviderDemo(${Number(g.id)})">PLAY DEMO</button></div></div>`;
+      }).join(''):'<div class="empty" style="grid-column:1/-1">No games found.</div>';
+    }catch(err){
+      box.innerHTML=`<div class="empty" style="grid-column:1/-1">${escapeHtml(err.message)}</div>`;
+      $('gameLobbyNote').textContent='Provider catalogue could not be loaded.';
+    }
+  }
+
+  async function playProviderDemo(gameId){
+    try{
+      const data=await api('/api/games/launch-demo',{method:'POST',body:JSON.stringify({gameId})});
+      if(!data.gameUrl) throw new Error('Provider did not return a game URL.');
+      $('gameModalTitle').textContent=data.gameName||'Game';
+      $('gameFrame').src=data.gameUrl;
+      openModal('gameModal');
+    }catch(err){toast(err.message);}
+  }
+
+  $('gameSearch').addEventListener('keydown',e=>{if(e.key==='Enter')loadProviderGames();});
+
+  function openRequest(type){
+    if(!token){ openAuth('login'); return; }
+    requestType = type;
+    $('requestTitle').textContent = type === 'deposit' ? 'Deposit Request' : 'Withdrawal Request';
+    $('payoutRow').style.display = type === 'withdrawal' ? 'block' : 'none';
+    $('proofRow').style.display = type === 'deposit' ? 'block' : 'none';
+    $('reqProof').required = type === 'deposit';
+    $('referenceLabel').textContent = type === 'deposit' ? 'UTR / PAYMENT REFERENCE' : 'REFERENCE';
+    $('reqReference').placeholder = type === 'deposit' ? 'Enter UTR number' : 'Optional reference';
+    $('requestForm').reset();
+    $('payoutRow').style.display = type === 'withdrawal' ? 'block' : 'none';
+    $('proofRow').style.display = type === 'deposit' ? 'block' : 'none';
+    $('reqProof').required = type === 'deposit';
+    openModal('requestModal');
+  }
+
+  $('requestForm').addEventListener('submit', async e=>{
+    e.preventDefault();
+    try{
+      const form = new FormData();
+      form.append('type', requestType);
+      form.append('amount', String(Number($('reqAmount').value)));
+      form.append('reference', $('reqReference').value.trim());
+      form.append('payoutDetails', $('reqPayout').value.trim());
+      form.append('note', $('reqNote').value.trim());
+      if(requestType === 'deposit' && $('reqProof').files[0]) form.append('proof', $('reqProof').files[0]);
+      await api('/api/wallet/requests',{method:'POST',body:form});
+      closeModal('requestModal');
+      toast('Request submitted successfully.');
+      await loadAccount();
+    }catch(err){ toast(err.message); }
+  });
+
+  function openWallet(){
+    if(!token){openAuth('login');return;}
+    $('dashboard').classList.add('show');
+    $('dashboard').scrollIntoView({behavior:'smooth',block:'start'});
+    loadAccount();
+  }
+
+  async function loadAccount(){
+    if(!token){updateLoggedOut();return;}
+    try{
+      const me = await api('/api/me');
+      currentUser = me.user || me;
+      if(currentUser.role === 'superadmin'){ window.location.href = '/supermaster'; return; }
+      if(currentUser.role === 'admin'){ window.location.href = '/master'; return; }
+      const wallet = await api('/api/wallet');
+      const balance = wallet.balance ?? wallet.user?.balance ?? currentUser.balance ?? 0;
+      $('homeBalance').textContent = money(balance);
+      $('dashBalance').textContent = money(balance);
+      $('dashUser').textContent = currentUser.username || 'Member';
+      $('dashRole').textContent = currentUser.role === 'admin' ? 'Master Admin' : 'User';
+      $('dashboard').classList.add('show');
+      updateLoggedIn();
+      await loadTransactions();
+      // Provider games are loaded only when the customer clicks "Load Games".
+      // A provider/API-key problem must never log the customer out.
+      if(currentUser.role === 'admin'){
+        $('adminArea').style.display='block';
+        await loadAdmin();
+      }else $('adminArea').style.display='none';
+    }catch(err){ console.error(err); }
+  }
+
+  async function loadTransactions(){
+    try{
+      const data = await api('/api/wallet/transactions');
+      const rows = Array.isArray(data) ? data : (data.transactions || data.items || []);
+      $('transactionBody').innerHTML = rows.length ? rows.slice(0,30).map(t=>`
+        <tr><td>${date(t.createdAt || t.date)}</td><td>${escapeHtml(t.type || '')}</td>
+        <td>${escapeHtml(t.direction || '')}</td><td>${money(t.amount)}</td>
+        <td><span class="pill ${(t.status||'pending').toLowerCase()}">${escapeHtml(t.status || '')}</span></td>
+        <td>${money(t.balanceAfter)}</td></tr>`).join('') : '<tr><td colspan="6" class="empty">No transactions yet.</td></tr>';
+    }catch(err){
+      $('transactionBody').innerHTML='<tr><td colspan="6" class="empty">Unable to load transactions.</td></tr>';
+    }
+  }
+
+  async function loadAdmin(){
+    if(!currentUser || currentUser.role !== 'admin') return;
+    try{
+      const [summary,tx] = await Promise.all([
+        api('/api/admin/summary'),
+        api('/api/admin/transactions')
+      ]);
+      $('adminUsers').textContent = summary.totalUsers ?? summary.users ?? 0;
+      $('adminPending').textContent = summary.pendingTransactions ?? summary.pending ?? 0;
+      $('adminBalance').textContent = money(summary.totalBalance ?? summary.balance ?? 0);
+      const rows = Array.isArray(tx) ? tx : (tx.transactions || tx.items || []);
+      $('adminBody').innerHTML = rows.length ? rows.slice(0,50).map(t=>{
+        const pending = String(t.status||'').toLowerCase()==='pending';
+        return `<tr><td>${escapeHtml(t.user?.username || t.userId || '—')}</td>
+          <td>${escapeHtml(t.type||'')}</td><td>${escapeHtml(t.direction||'')}</td><td>${money(t.amount)}</td>
+          <td><span class="pill ${(t.status||'pending').toLowerCase()}">${escapeHtml(t.status||'')}</span></td>
+          <td>${pending ? `<button onclick="reviewTx('${t._id}','approved')" style="border:0;background:#0b8f63;color:#fff;border-radius:6px;padding:5px 8px;font-size:10px">Approve</button>
+          <button onclick="reviewTx('${t._id}','rejected')" style="border:0;background:#c94a4a;color:#fff;border-radius:6px;padding:5px 8px;font-size:10px;margin-left:4px">Reject</button>` : '—'}</td></tr>`;
+      }).join('') : '<tr><td colspan="6" class="empty">No requests found.</td></tr>';
+    }catch(err){
+      toast('Admin data could not be loaded.');
+    }
+  }
+
+  async function reviewTx(id,status){
+    try{
+      await api('/api/admin/transactions/'+encodeURIComponent(id)+'/review',{
+        method:'PATCH',body:JSON.stringify({status,reviewerNote:'Reviewed from Master Admin panel'})
+      });
+      toast('Transaction '+status+'.');
+      await loadAccount();
+    }catch(err){toast(err.message);}
+  }
+
+  function openAdjust(){
+    if(!currentUser || currentUser.role!=='admin'){toast('Master admin access required.');return;}
+    $('adjustForm').reset();openModal('adjustModal');
+  }
+
+  $('adjustForm').addEventListener('submit',async e=>{
+    e.preventDefault();
+    try{
+      await api('/api/admin/adjustments',{method:'POST',body:JSON.stringify({
+        userId:$('adjUser').value.trim(),
+        direction:$('adjDirection').value,
+        amount:Number($('adjAmount').value),
+        note:$('adjNote').value.trim()
+      })});
+      closeModal('adjustModal');toast('Wallet adjustment applied.');await loadAccount();
+    }catch(err){toast(err.message);}
+  });
+
+  function updateLoggedIn(){
+    $('topActions').innerHTML = `
+      <button class="btn" onclick="openWallet()">💳 Wallet</button>
+      <button class="btn primary" onclick="logout()">⇥ Logout</button>`;
+  }
+  function updateLoggedOut(){
+    $('topActions').innerHTML = `<button class="btn" onclick="openAuth('login')">⇥ &nbsp;Log In</button>`;
+  }
+  function logout(show=true){
+    token='';currentUser=null;localStorage.removeItem('superwallet_token');
+    $('dashboard').classList.remove('show');$('adminArea').style.display='none';updateLoggedOut();
+    if(show)toast('Logged out.');
+  }
+  function date(v){return v ? new Date(v).toLocaleString('en-IN',{dateStyle:'short',timeStyle:'short'}) : '—'}
+  function escapeHtml(v){return String(v ?? '').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))}
+
+  function updateClock(){
+    const d=new Date();
+    $('dateText').textContent=d.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})+' (IST)';
+    $('timeText').textContent=d.toLocaleTimeString('en-IN',{hour12:false});
+  }
+  updateClock();setInterval(updateClock,1000);
+  if(token) loadAccount();
+  else if(location.pathname === '/client/login') openAuth();
+</script>
+</body>
+</html>

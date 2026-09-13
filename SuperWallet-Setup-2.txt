@@ -1,0 +1,38 @@
+SUPERWALLET - MASTER + SUPER MASTER UPDATE
+
+Files in this package:
+- server.js
+- index.html
+- master.html
+- supermaster.html
+
+WHAT THIS UPDATE ADDS
+1. Master can create customer accounts manually.
+2. Master can see his own coin balance.
+3. Master can add coins to a customer.
+4. Master can withdraw coins from a customer back to Master.
+5. Every Master <-> Customer transfer is recorded in the ledger.
+6. Super Master is a separate panel with an unlimited coin reserve.
+7. Super Master can add coins to Master.
+8. Super Master can withdraw coins from Master.
+9. Super Master can see Master balance and Master ledger.
+10. Customer deposit/withdrawal approvals now move coins between Master and Customer instead of creating coins from nowhere.
+
+RUN
+1. Stop the old npm run dev process with Ctrl+C.
+2. Replace these four files in your project folder with the files from this ZIP.
+3. Run:
+   npm run dev
+4. Open:
+   http://localhost:5000
+   Master: http://localhost:5000/master
+   Super Master: http://localhost:5000/supermaster
+
+SUPER MASTER FIRST LOGIN (local development default)
+Email: supermaster@superwallet.local
+Password: ChangeThisSuperMasterPassword123!
+
+IMPORTANT
+- Change the Super Master password immediately from the Super Master panel.
+- The Super Master is an unlimited internal coin reserve; it is not a real-money balance.
+- This build is a general credit/wallet ledger and does not implement betting, wagering, casino settlement, or real-money gambling mechanics.

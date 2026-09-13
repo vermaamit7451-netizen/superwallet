@@ -1,0 +1,20 @@
+{
+  "name": "superwallet",
+  "version": "1.0.0",
+  "private": true,
+  "description": "SuperWallet member wallet and master-admin panel",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.js",
+    "dev": "node --watch --env-file-if-exists=.env server.js"
+  },
+  "engines": { "node": ">=20.6.0" },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "body-parser": "^2.3.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.10.0",
+    "multer": "^2.3.0"
+  }
+}
