@@ -20,3 +20,13 @@ Security:
 
 Provider docs:
 https://api.bigbangcasino.bet/docs/
+
+
+Seamless wallet staging
+- The server now includes signed BigBang callbacks at GET /wallet/user and POST /wallet/balance.
+- Keep BIGBANG_WALLET_MODE=disabled until the provider account has seamless callbacks enabled.
+- For live mode, set BIGBANG_API_KEY and BIGBANG_WALLET_MODE=seamless in Render Environment Variables only.
+- Configure the provider callback URLs as https://YOUR-DOMAIN/wallet/user and https://YOUR-DOMAIN/wallet/balance.
+- Provider movements are idempotent by transaction_id and recorded as game_bet, game_win, or game_refund.
+- Live launch is intentionally rejected while the mode is disabled.
+- This integration supports BigBang casino/live/slot/crash categories; cricket/sportsbook is not included.

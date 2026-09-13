@@ -122,6 +122,16 @@
     .game-lobby{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding:10px}
     .provider-game{background:#101e23;border-radius:10px;overflow:hidden;color:#fff;box-shadow:var(--shadow);min-height:210px;display:flex;flex-direction:column}
     .provider-game img{width:100%;height:125px;object-fit:cover;background:#20343a}
+    .provider-art{height:125px;display:grid;place-items:center;position:relative;overflow:hidden;background:radial-gradient(circle at 70% 20%,rgba(255,255,255,.28),transparent 30%),linear-gradient(135deg,#173b3b,#0b8f63)}
+    .provider-art:before,.provider-art:after{content:"";position:absolute;border-radius:50%;background:rgba(255,255,255,.12)}
+    .provider-art:before{width:150px;height:150px;right:-50px;top:-70px}.provider-art:after{width:80px;height:80px;left:-20px;bottom:-30px}
+    .provider-art span{font-size:42px;filter:drop-shadow(0 4px 4px rgba(0,0,0,.35));z-index:1}
+    .demo-game-screen{padding:22px;color:#fff;display:grid;gap:16px;place-items:center;text-align:center;background:radial-gradient(circle at 50% 0%,#165a50,#071316 65%);height:100%}
+    .demo-game-screen h2{margin:0;font-size:30px}.demo-game-screen p{margin:0;color:#b9cfcc;max-width:560px}
+    .demo-board{width:min(560px,100%);padding:28px;border:1px solid rgba(255,255,255,.16);border-radius:18px;background:rgba(255,255,255,.06);box-shadow:0 18px 60px rgba(0,0,0,.25)}
+    .demo-result{font-size:54px;font-weight:900;letter-spacing:2px;color:#ffd166;min-height:70px;display:grid;place-items:center}
+    .demo-controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}.demo-controls button{border:0;border-radius:20px;padding:11px 17px;background:#11a978;color:#fff;font-weight:900}.demo-controls button.secondary{background:#263d41}
+    .demo-status{color:#d9ebe7;font-size:13px;min-height:20px}
     .provider-game .pg-body{padding:10px;display:flex;flex-direction:column;gap:6px;flex:1}
     .provider-game strong{font-size:13px;line-height:1.25}.provider-game small{color:#aebdc0;font-size:10px}
     .play-demo{margin-top:auto;border:0;border-radius:7px;padding:8px;background:#0b8f63;color:#fff;font-weight:900;font-size:11px}
@@ -231,7 +241,7 @@
           <input id="gameSearch" placeholder="Search provider games...">
           <button onclick="loadProviderGames()">Load Games</button>
         </div>
-        <div class="lobby-note" id="gameLobbyNote">Login first, then load the provider's Standard/Sandbox catalogue. Demo mode does not use your SuperWallet balance.</div>
+        <div class="lobby-note" id="gameLobbyNote">Sandbox demo lobby is ready. Demo play never uses your SuperWallet balance.</div>
         <div class="game-lobby" id="providerGames"><div class="empty" style="grid-column:1/-1">No provider games loaded yet.</div></div>
       </section>
 
@@ -360,7 +370,7 @@
     window.toastTimer = setTimeout(()=>$('toast').classList.remove('show'),3200);
   }
 
-  function closeModal(id){ $(id).classList.remove('show'); }
+  function closeModal(id){ $(id).classList.remove('show'); if(id==='gameModal') $('gameFrame').srcdoc=''; $('gameFrame').src='about:blank'; }
   function openModal(id){ $(id).classList.add('show'); }
 
   function money(v){
@@ -420,24 +430,40 @@
     finally{ $('authSubmit').disabled = false; }
   });
 
-  async function loadProviderGames(){
-    if(!token){ openAuth('login'); return; }
+  const builtInGames = [
+    {id:'golden-kick',name:'Golden Kick',provider:'SuperWallet Originals',icon:'⚽',kind:'score'},
+    {id:'wicket-blast',name:'Wicket Blast',provider:'SuperWallet Originals',icon:'🏏',kind:'score'},
+    {id:'twist-x',name:'Twist X',provider:'Sandbox Arcade',icon:'🌀',kind:'spin'},
+    {id:'instant-cards',name:'Instant Cards',provider:'Sandbox Cards',icon:'🃏',kind:'cards'},
+    {id:'black-jack',name:'Black Jack',provider:'Sandbox Cards',icon:'♠️',kind:'cards'},
+    {id:'rocket-run',name:'Rocket Run',provider:'Demo Originals',icon:'🚀',kind:'spin'}
+  ];
+
+  function renderDemoGames(list){
     const box=$('providerGames');
-    box.innerHTML='<div class="empty" style="grid-column:1/-1">Loading provider catalogue...</div>';
+    box.innerHTML=list.length ? list.map(g=>`<div class="provider-game"><div class="provider-art"><span>${g.icon}</span></div><div class="pg-body"><strong>${escapeHtml(g.name)}</strong><small>${escapeHtml(g.provider)} · Demo mode</small><button class="play-demo" onclick="playBuiltInGame('${g.id}')">PLAY DEMO</button></div></div>`).join('') : '<div class="empty" style="grid-column:1/-1">No games found.</div>';
+  }
+
+  async function loadProviderGames(){
+    const search=$('gameSearch').value.trim().toLowerCase();
+    const local=builtInGames.filter(g=>!search || (g.name+' '+g.provider).toLowerCase().includes(search));
+    renderDemoGames(local);
+    $('gameLobbyNote').textContent=`${local.length} sandbox demo game${local.length===1?'':'s'} available. Demo play never uses your SuperWallet balance.`;
+    if(!token){ return; }
     try{
       const q=encodeURIComponent($('gameSearch').value.trim());
       const data=await api('/api/games/catalog'+(q?'?search='+q:''));
       const games=Array.isArray(data.games)?data.games:[];
-      $('gameLobbyNote').textContent = games.length ? `Loaded ${games.length} provider demo games. Demo play is separate from your SuperWallet balance.` : 'No games returned for this search.';
-      box.innerHTML=games.length?games.map(g=>{
-        const name=escapeHtml(g.name||'Game'); const provider=escapeHtml(g.provider||g.category_title||'Provider');
-        const thumb=escapeHtml(g.thumbnail||'');
-        return `<div class="provider-game">${thumb?`<img src="${thumb}" alt="${name}" loading="lazy">`:'<div style="height:125px;background:linear-gradient(135deg,#173b3b,#0b8f63);display:grid;place-items:center;font-size:38px">🎮</div>'}<div class="pg-body"><strong>${name}</strong><small>${provider}</small><button class="play-demo" onclick="playProviderDemo(${Number(g.id)})">PLAY DEMO</button></div></div>`;
-      }).join(''):'<div class="empty" style="grid-column:1/-1">No games found.</div>';
-    }catch(err){
-      box.innerHTML=`<div class="empty" style="grid-column:1/-1">${escapeHtml(err.message)}</div>`;
-      $('gameLobbyNote').textContent='Provider catalogue could not be loaded.';
-    }
+      if(games.length){
+        const box=$('providerGames');
+        box.innerHTML=games.map(g=>{
+          const name=escapeHtml(g.name||'Game'); const provider=escapeHtml(g.provider||g.category_title||'Provider');
+          const thumb=escapeHtml(g.thumbnail||'');
+          return `<div class="provider-game">${thumb?`<img src="${thumb}" alt="${name}" loading="lazy">`:'<div class="provider-art"><span>🎮</span></div>'}<div class="pg-body"><strong>${name}</strong><small>${provider} · Provider demo</small><button class="play-demo" onclick="playProviderDemo(${Number(g.id)})">PLAY DEMO</button><button class="play-demo" style="background:#c98b19" onclick="playProviderLive(${Number(g.id)})">LIVE PLAY</button></div></div>`;
+        }).join('');
+        $('gameLobbyNote').textContent=`Loaded ${games.length} provider demo games. Demo play is separate from your SuperWallet balance.`;
+      }
+    }catch(err){ /* Built-in sandbox catalogue remains available if provider is not configured. */ }
   }
 
   async function playProviderDemo(gameId){
@@ -450,7 +476,29 @@
     }catch(err){toast(err.message);}
   }
 
+  async function playProviderLive(gameId){
+    if(!token){openAuth('login');return;}
+    try{
+      const data=await api('/api/games/launch',{method:'POST',body:JSON.stringify({gameId})});
+      if(!data.gameUrl) throw new Error('Provider did not return a live game URL.');
+      $('gameModalTitle').textContent=(data.gameName||'Game')+' · Live';
+      $('gameFrame').src=data.gameUrl;
+      openModal('gameModal');
+    }catch(err){toast(err.message);}
+  }
+
+  function playBuiltInGame(gameId){
+    const game=builtInGames.find(g=>g.id===gameId)||builtInGames[0];
+    $('gameModalTitle').textContent=game.name+' · Sandbox Demo';
+    $('gameFrame').srcdoc=`<!doctype html><html><head><meta charset="utf-8"><style>${document.querySelector('style').textContent}</style></head><body style="margin:0;background:#071316"><div class="demo-game-screen"><div><div style="font-size:54px">${game.icon}</div><h2>${escapeHtml(game.name)}</h2><p>Practice mode only. No deposits, wagers, withdrawals, or SuperWallet balance are connected.</p></div><div class="demo-board"><div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px"><strong>DEMO COINS</strong><strong id="coins" style="color:#ffd166">1,000</strong></div><div style="display:flex;gap:8px;justify-content:center;margin-bottom:14px"><input id="bet" type="number" min=1 max=1000 value=50 style="width:120px;padding:10px;border-radius:8px;border:0;text-align:center"><span style="align-self:center;color:#b9cfcc">coin bet</span></div><div class="demo-result" id="result">READY</div><div class="demo-status" id="status">Choose an action to start the demo.</div><div class="demo-controls"><button onclick="play()">PLAY ROUND</button><button class="secondary" onclick="resetGame()">RESET</button></div></div></div><script>const kind=${JSON.stringify(game.kind)};let coins=1000;function sync(){document.getElementById('coins').textContent=coins.toLocaleString();parent.postMessage({type:'superwallet-demo-coins',coins},'*')}function play(){const result=document.getElementById('result');const status=document.getElementById('status');const bet=Math.max(1,Math.min(coins,Number(document.getElementById('bet').value)||50));if(coins<bet){status.textContent='Not enough demo coins. Press RESET to restart.';return}coins-=bet;let win=false;if(kind==='score'){const a=Math.floor(Math.random()*6)+1;const b=Math.floor(Math.random()*6)+1;result.textContent=a+' - '+b;win=a>b;status.textContent=win?'Home team wins — demo payout credited.':a<b?'Away team wins — demo bet lost.':'Tie — demo bet returned.';if(a===b)coins+=bet;}else if(kind==='cards'){const cards=['A♠','K♥','Q♦','J♣','10♠','9♥'];const card=cards[Math.floor(Math.random()*cards.length)];result.textContent=card;win=['A♠','K♥'].includes(card);status.textContent=win?'Lucky card — demo payout credited.':'Card round lost in demo mode.';}else{const multiplier=Number((Math.random()*4+1).toFixed(2));result.textContent=multiplier+'x';win=multiplier>=2;status.textContent=win?'Target reached — demo payout credited.':'Multiplier stopped — demo bet lost.';}if(win)coins+=bet*2;sync()}function resetGame(){coins=1000;document.getElementById('result').textContent='READY';document.getElementById('status').textContent='Demo coins reset to 1,000.';sync()}sync();</script></body></html>`;
+    openModal('gameModal');
+  }
+
   $('gameSearch').addEventListener('keydown',e=>{if(e.key==='Enter')loadProviderGames();});
+  renderDemoGames(builtInGames);
+  window.addEventListener('message', event => {
+    if(event.data?.type === 'superwallet-demo-coins') localStorage.setItem('superwallet_demo_coins', String(event.data.coins));
+  });
 
   function openRequest(type){
     if(!token){ openAuth('login'); return; }

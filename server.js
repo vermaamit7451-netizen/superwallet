@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 const express = require('express');
-const cors = require('cors');
 const multer = require('multer');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -20,7 +20,7 @@ const config = {
   supermasterPassword: process.env.SUPERMASTER_PASSWORD || 'ChangeThisSuperMasterPassword123!',
   isProduction: process.env.NODE_ENV === 'production',
   bigBangApiKey: String(process.env.BIGBANG_API_KEY || '').trim(),
-  frontendOrigin: String(process.env.FRONTEND_ORIGIN || '').trim()
+  bigBangWalletMode: String(process.env.BIGBANG_WALLET_MODE || 'disabled').trim().toLowerCase()
 };
 
 if (!config.jwtSecret) {
@@ -33,7 +33,6 @@ if (config.isProduction && config.jwtSecret.includes('replace-this')) {
 
 app.disable('x-powered-by');
 app.use(express.json({ limit: '50kb' }));
-app.use(cors({ origin: config.frontendOrigin || true }));
 
 const BIGBANG_BASE = 'https://api.bigbangcasino.bet/api/v1';
 
@@ -101,7 +100,7 @@ const userSchema = new mongoose.Schema(
 const transactionSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-    type: { type: String, enum: ['deposit', 'withdrawal', 'adjustment'], required: true },
+    type: { type: String, enum: ['deposit', 'withdrawal', 'adjustment', 'game_bet', 'game_win', 'game_refund'], required: true },
     direction: { type: String, enum: ['credit', 'debit'], required: true },
     amount: { type: Number, required: true, min: 1 },
     status: { type: String, enum: ['pending', 'approved', 'rejected'], default: 'pending', index: true },
@@ -115,13 +114,19 @@ const transactionSchema = new mongoose.Schema(
     proofPath: { type: String, default: '' },
     proofOriginalName: { type: String, default: '' },
     proofMimeType: { type: String, default: '' },
-    proofSize: { type: Number, default: 0 }
+    proofSize: { type: Number, default: 0 },
+    provider: { type: String, default: '' },
+    game: { type: String, default: '' },
+    roundId: { type: String, default: '' },
+    providerTransactionId: { type: String, default: '', index: true },
+    currency: { type: String, default: 'INR' }
   },
   { timestamps: true }
 );
 
 transactionSchema.index({ user: 1, createdAt: -1 });
 transactionSchema.index({ status: 1, createdAt: -1 });
+transactionSchema.index({ providerTransactionId: 1 }, { unique: true, sparse: true });
 
 const User = mongoose.models.User || mongoose.model('User', userSchema);
 const Transaction =
@@ -363,11 +368,59 @@ app.post('/api/auth/signup', (_req, res) => {
   res.status(403).json({ message: 'Customer self-signup is disabled. Only Master or Admin can create customer IDs.' });
 });
 
+function providerSignature(payload) {
+  const base = String(payload.username ?? '') + String(payload.amount ?? '') + String(payload.game ?? '') + String(payload.game_category ?? '') + String(payload.transaction_id ?? '');
+  return crypto.createHmac('sha256', config.bigBangApiKey).update(base).digest('hex');
+}
+function providerWalletEnabled() { return Boolean(config.bigBangApiKey && config.bigBangWalletMode === 'seamless'); }
+app.get('/wallet/user', async (req, res, next) => {
+  try {
+    if (!providerWalletEnabled()) return res.status(503).json({ error: 'Seamless wallet is not enabled.' });
+    const username = cleanUsername(req.query.username);
+    const user = await User.findOne({ username, role: 'user' });
+    if (!user) return res.status(404).json({ error: 'unknown user' });
+    res.json({ username, balance: Number(user.balance).toFixed(2), currency: 'INR' });
+  } catch (error) { next(error); }
+});
+app.post('/wallet/balance', async (req, res, next) => {
+  try {
+    if (!providerWalletEnabled()) return res.status(503).json({ error: 'Seamless wallet is not enabled.' });
+    const payload = req.body || {};
+    const expected = providerSignature(payload);
+    const provided = String(payload.signature || '');
+    if (!provided || provided.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(provided))) return res.status(401).json({ error: 'bad signature' });
+    if (payload.sandbox) return res.json({ status: 'ok', balance: '100000.00' });
+    const providerTransactionId = cleanText(payload.transaction_id, 160);
+    const username = cleanUsername(payload.username);
+    const amount = Number(payload.amount);
+    if (!providerTransactionId || !username || !Number.isFinite(amount) || amount === 0) return res.status(400).json({ error: 'invalid wallet movement' });
+    const duplicate = await Transaction.findOne({ providerTransactionId });
+    if (duplicate) return res.json({ status: 'ok', balance: Number(duplicate.balanceAfter || 0).toFixed(2), duplicate: true });
+    const user = await User.findOne({ username, role: 'user' });
+    if (!user) return res.status(404).json({ error: 'unknown user' });
+    const roundedAmount = Math.round(amount * 100) / 100;
+    const nextBalance = Math.round((Number(user.balance) + roundedAmount) * 100) / 100;
+    if (nextBalance < 0) return res.status(400).json({ error: 'insufficient balance', balance: Number(user.balance).toFixed(2) });
+    const updated = await User.findOneAndUpdate({ _id: user._id, balance: user.balance }, { $set: { balance: nextBalance } }, { new: true });
+    if (!updated) return res.status(409).json({ error: 'balance changed, retry movement' });
+    const type = payload.type === 'refund' ? 'game_refund' : roundedAmount < 0 ? 'game_bet' : 'game_win';
+    try {
+      await Transaction.create({ user: updated._id, type, direction: roundedAmount < 0 ? 'debit' : 'credit', amount: Math.abs(roundedAmount), status: 'approved', balanceAfter: updated.balance, provider: 'bigbang', game: cleanText(payload.game, 160), roundId: cleanText(payload.round_id, 160), providerTransactionId, currency: 'INR', note: `Provider ${payload.type || 'round'} settlement` });
+    } catch (error) {
+      await User.findByIdAndUpdate(updated._id, { $set: { balance: user.balance } });
+      if (error?.code === 11000) { const row = await Transaction.findOne({ providerTransactionId }); return res.json({ status: 'ok', balance: Number(row?.balanceAfter || user.balance).toFixed(2), duplicate: true }); }
+      throw error;
+    }
+    res.json({ status: 'ok', balance: Number(updated.balance).toFixed(2) });
+  } catch (error) { next(error); }
+});
+
 app.get('/api/games/catalog', requireAuth, async (req, res, next) => {
   try {
     const search = cleanText(req.query.search || '', 80);
     const provider = cleanText(req.query.provider || '', 80);
-    const params = new URLSearchParams({ type: 'standard', limit: '120' });
+    const mode = ['standard', 'premium'].includes(String(req.query.mode || '').toLowerCase()) ? String(req.query.mode).toLowerCase() : 'standard';
+    const params = new URLSearchParams({ type: mode, limit: '120' });
     if (search) params.set('search', search);
     if (provider) params.set('provider', provider);
     const payload = await bigBangRequest('/games?' + params.toString());
@@ -387,6 +440,17 @@ app.post('/api/games/launch-demo', requireAuth, async (req, res, next) => {
       body: JSON.stringify({ game_id: gameId, demo: true, language: 'en', return_url: `${req.protocol}://${req.get('host')}/` })
     });
     res.json({ gameUrl: payload.data?.game_url || payload.game_url || '', gameName: payload.data?.game_name || payload.game_name || 'Game' });
+  } catch (error) { next(error); }
+});
+
+app.post('/api/games/launch', requireAuth, async (req, res, next) => {
+  try {
+    if (!providerWalletEnabled()) throw errorWithStatus('Live games are disabled until BIGBANG_API_KEY and BIGBANG_WALLET_MODE=seamless are configured.', 503);
+    const gameId = Number(req.body?.gameId);
+    if (!Number.isInteger(gameId) || gameId < 1) throw errorWithStatus('A valid game ID is required.', 400);
+    await bigBangRequest('/users/create', { method: 'POST', body: JSON.stringify({ user_token: req.user.username, username: req.user.username, country: 'IN' }) });
+    const payload = await bigBangRequest('/games/launch', { method: 'POST', body: JSON.stringify({ game_id: gameId, user_token: req.user.username, demo: false, language: 'en', return_url: `${req.protocol}://${req.get('host')}/` }) });
+    res.json({ gameUrl: payload.data?.game_url || payload.game_url || '', gameName: payload.data?.game_name || payload.game_name || 'Game', mode: 'live' });
   } catch (error) { next(error); }
 });
 
