@@ -82,6 +82,10 @@ app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('Referrer-Policy', 'same-origin');
   res.setHeader('Cache-Control', 'no-store');
+  if (req.path === '/wallet/user' || req.path === '/wallet/balance') {
+    const started = Date.now();
+    res.on('finish', () => console.log(`[wallet-callback] ${req.method} ${req.path} status=${res.statusCode} ms=${Date.now() - started}`));
+  }
   next();
 });
 
